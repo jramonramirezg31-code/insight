@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 75vh;">
+    
+    <div class="w-100" style="max-width: 500px;">
+        
+        <div class="card border-0 shadow-sm bg-white">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="fw-bold mb-0 text-center">📝 Registrar Nuevo Pedido</h4>
+            </div>
+            
+            <div class="card-body p-4">
+                <form action="/agregar" method="POST">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary">Cliente</label>
+                        <input type="text" name="cliente" class="form-control form-control-lg bg-light border-0" 
+                               placeholder="Ej. Juan Pérez" required style="font-size: 1rem;">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary">Descripción del Trabajo</label>
+                        <textarea name="descripcion" class="form-control bg-light border-0" rows="4" 
+                                  placeholder="Ej. 50 llaveros MDF 3mm con grabado..." required style="font-size: 1rem;"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary">Fecha de Entrega</label>
+                        <input type="date" name="fecha" class="form-control form-control-lg bg-light border-0" required style="font-size: 1rem;">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-secondary">Total ($)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0 fw-semibold text-secondary">$</span>
+                            <input type="number" name="total" step="0.01" class="form-control form-control-lg bg-light border-0" 
+                                   placeholder="0.00" required style="font-size: 1rem;">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success btn-lg w-100 fw-bold py-2 shadow-sm">
+                        Guardar Pedido
+                    </button>
+                    
+                </form>
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

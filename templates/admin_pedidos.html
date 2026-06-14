@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark">⚙️ Administrar Pedidos</h2>
+        <a href="/" class="btn btn-outline-secondary">Regresar al Panel</a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Descripción</th>
+                            <th>Entrega</th>
+                            <th>Total</th>
+                            <th>Estado Actual</th>
+                            <th class="text-center">Cambiar Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pedido in lista_pedidos %}
+                        <tr>
+                            <td>{{ pedido.id }}</td>
+                            <td><strong>{{ pedido.cliente }}</strong></td>
+                            <td>{{ pedido.descripcion }}</td>
+                            <td>{{ pedido.fecha }}</td>
+                            <td>${{ pedido.total }}</td>
+                            <td>
+                                {% if pedido.estado == 'Diseño' %}
+                                    <span class="badge bg-info text-dark">🎨 Diseño</span>
+                                {% elif pedido.estado == 'Cortando' %}
+                                    <span class="badge bg-warning text-dark">⚡ Cortando</span>
+                                {% elif pedido.estado == 'Listo' %}
+                                    <span class="badge bg-success text-white">✅ Listo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary text-white">({{pedido.estatus}})</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="/editar_estado/{{ pedido.id }}/Diseño" class="btn btn-outline-info" title="Diseño">🎨</a>
+                                    <a href="/editar_estado/{{ pedido.id }}/Cortando" class="btn btn-outline-warning" title="Corte">⚡</a>
+                                    <a href="/editar_estado/{{ pedido.id }}/Listo" class="btn btn-outline-success" title="Listo">✅</a>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <a href="/eliminar/{{ pedido.id }}" class="btn btn-danger btn-sm" 
+                                   onclick="return confirm('¿Seguro que deseas eliminar el pedido de: {{ pedido.cliente }}?');">
+                                    🗑️ Eliminar
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No hay pedidos para administrar.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
