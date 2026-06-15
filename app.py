@@ -5,7 +5,7 @@ import psycopg2  # <-- Cambiado pyodbc por psycopg2 para PostgreSQL
 app = Flask(__name__)
 
 # La clave secreta la leerá de internet de forma segura, si no existe usa una por defecto
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'clave_local_secreta_insight')
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'L@ser2310')
 
 # ==========================================
 # CONEXIÓN ADAPTADA A POSTGRESQL (LA NUBE)
