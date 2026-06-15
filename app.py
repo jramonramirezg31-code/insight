@@ -32,8 +32,8 @@ def login():
     if request.method != 'POST':
         return render_template('login.html')
         
-    usuario = request.form['usuario']
-    contra = request.form['contra']
+    usuario = request.form['username']
+    contra = request.form['password']
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
