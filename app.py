@@ -20,41 +20,35 @@ def obtener_conexion():
 # RUTAS DE AUTENTICACIÓN (LOGIN Y LOGOUT)
 # ==========================================
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        usuario_ingresado = request.form['usuario']
-        password_ingresado = request.form['password']
+@app.route('/login', methods=['POST'])
+def login_post():
+    usuario = request.form['usuario']
+    contra = request.form['contra']
+    
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        # Buscamos al usuario de forma segura con %s
+        cursor.execute("SELECT contra FROM usuarios WHERE usuario = %s", (usuario,))
+        row = cursor.fetchone()
+        conn.close()
         
-        usuario_encontrado = None
-        try:
-            conn = obtener_conexion()
-            cursor = conn.cursor()
-            query = "SELECT usuario FROM usuarios WHERE usuario = %s AND contra = %s"
-            cursor.execute(query, (usuario_ingresado, password_ingresado))
-            row = cursor.fetchone()
-            if row:
-                usuario_encontrado = row[0]
-            conn.close()
-        except Exception as e:
-            print(f"Error al verificar usuario en SQL Server: {e}")
-            flash("Error de conexión con la base de datos.")
-            return redirect(url_for('login'))
-        
-        if usuario_encontrado:
-            session['usuario'] = usuario_encontrado
-            return redirect(url_for('index')) # Te manda a la página de inicio (Pedidos) al loguearte
+        # BLINDAJE: Verificamos si 'row' tiene datos antes de validar la contraseña
+        if row is not None:
+            if row[0] == contra:
+                session['usuario'] = usuario
+                return redirect(url_for('inicio'))
+            else:
+                flash('Contraseña incorrecta', 'danger')
+                return redirect(url_for('login'))
         else:
-            flash('Usuario o contraseña incorrectos.')
+            flash('El usuario no existe', 'danger')
             return redirect(url_for('login'))
             
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.pop('usuario', None)
-    return redirect(url_for('login'))
-
+    except Exception as e:
+        print(f"Error crítico en el proceso de Login: {e}")
+        flash('Error de comunicación con el servidor', 'danger')
+        return redirect(url_for('login'))
 
 # ==========================================
 # 1. PÁGINA DE INICIO CONSTANTE: FORMULARIO Y LISTA DE PEDIDOS
