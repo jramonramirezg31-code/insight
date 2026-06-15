@@ -69,7 +69,7 @@ def index():
         conn = obtener_conexion()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id_pedido, cliente, descripcion, CONVERT(VARCHAR, fecha_entrega, 23), total, estatus 
+            SELECT id_pedido, cliente, descripcion, to_char(fecha_entrega), total, estatus 
             FROM pedidos2
         """)
         rows = cursor.fetchall()
@@ -125,7 +125,7 @@ def dashboard_inicio():
         
         # Traemos también el cliente y la fecha para el calendario
         cursor.execute("""
-            SELECT estatus, cliente, CONVERT(VARCHAR, fecha_entrega, 23) 
+            SELECT estatus, cliente, to_char(fecha_entrega) 
             FROM pedidos2
         """)
         rows = cursor.fetchall()
@@ -179,7 +179,7 @@ def admin_pedidos():
         conn = obtener_conexion()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id_pedido, cliente, descripcion, CONVERT(VARCHAR, fecha_entrega, 23), total, estatus
+            SELECT id_pedido, cliente, descripcion, to_char(fecha_entrega), total, estatus
             FROM pedidos2
         """)
         rows = cursor.fetchall()
