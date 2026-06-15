@@ -64,18 +64,8 @@ def inicio():
     if 'usuario' not in session:
         return redirect(url_for('login'))
     
-    pedidos_lista = []
-    try:
-        conn = obtener_conexion()
-        cursor = conn.cursor()
-        # Seleccionamos la fecha_entrega limpia, sin funciones raras
-        cursor.execute("SELECT id_pedido, cliente, descripcion, fecha_entrega, total, estatus FROM pedidos2 ORDER BY id_pedido DESC")
-        pedidos_lista = cursor.fetchall()
-        conn.close()
-    except Exception as e:
-        print(f"Error al leer pedidos en Inicio: {e}")
-        
-    return render_template('pedidos.html', pedidos=pedidos_lista)
+    # Súper limpio: No lee nada de la base de datos, solo muestra el formulario centrado
+    return render_template('pedidos.html')
 
 
 @app.route('/agregar', methods=['POST'])
