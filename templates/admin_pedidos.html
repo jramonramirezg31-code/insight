@@ -29,7 +29,7 @@
                             <td>{{ pedido.id }}</td>
                             <td><strong>{{ pedido.cliente }}</strong></td>
                             <td>{{ pedido.descripcion }}</td>
-                            <td>{{ pedido[3].strftime('%d-%m-%Y') if pedido[3] else '' }}</td>
+                            <td>{{ pedido.fecha_pedido</td>
                             <td>${{ pedido.total }}</td>
                             <td>
                                 {% if pedido.estado == 'Diseño' %}
