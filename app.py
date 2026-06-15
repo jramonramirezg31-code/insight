@@ -22,30 +22,28 @@ def obtener_conexion():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        usuario = request.form['usuario']
-        contra = request.form['contra']
-        try:
-            conn = obtener_conexion()
-            cursor = conn.cursor()
-            cursor.execute("SELECT contra FROM usuarios WHERE usuario = %s", (usuario,))
-            row = cursor.fetchone()
-            conn.close()
-            if row is not None:
-                if row[0] == contra:
-                    session['usuario'] = usuario
-                    return redirect(url_for('inicio'))
-                else:
-                    flash('Contraseña incorrecta', 'danger')
-                    return redirect(url_for('login'))
-            else:
-                flash('El usuario no existe', 'danger')
-                return redirect(url_for('login'))
-        except Exception as e:
-            print(f"Error crítico en el proceso de Login: {e}")
-            flash('Error de comunicación con el servidor', 'danger')
-            return redirect(url_for('login'))
-    return render_template('login.html')
+    if request.method != 'POST':
+        return render_template('login.html')
+        
+    usuario = request.form['usuario']
+    contra = request.form['contra']
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("SELECT contra FROM usuarios WHERE usuario = %s", (usuario,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row is not None and row[0] == contra:
+            session['usuario'] = usuario
+            return redirect(url_for('inicio'))
+            
+        flash('Usuario o contraseña incorrectos', 'danger')
+    except Exception as e:
+        print(f"Error crítico en Login: {e}")
+        flash('Error de comunicación con el servidor', 'danger')
+        
+    return redirect(url_for('login'))
     
 # ==========================================
 # 1. PÁGINA DE INICIO CONSTANTE: FORMULARIO Y LISTA DE PEDIDOS
