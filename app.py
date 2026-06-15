@@ -1,25 +1,32 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
 import os
-import psycopg2  # <-- Cambiado pyodbc por psycopg2 para PostgreSQL
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+import psycopg2
 
 app = Flask(__name__)
 
-# La clave secreta la leerá de internet de forma segura, si no existe usa una por defecto
+# Clave secreta leída desde las variables de Render o una por defecto
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'L@ser2310')
 
 # ==========================================
-# CONEXIÓN ADAPTADA A POSTGRESQL (LA NUBE)
+# CONEXIÓN INTEGRAL A POSTGRESQL (LA NUBE)
 # ==========================================
 def obtener_conexion():
-    # Render y los servidores en la nube te dan una "Connection String" o URL completa.
-    # El código la buscará automáticamente en internet, y si estás en tu PC local,
-    # puedes pegar tu URL de Supabase/Neon temporalmente aquí.
-    url_conexion = os.environ.get('DATABASE_URL', 'postgresql://postgres:[L@ser.2310]@db.fzpaqqixgadcgawhuptl.supabase.co:5432/postgres')
+    # Intenta leer la variable secreta de Render (Session Pooler puerto 6543)
+    url_conexion = os.environ.get('DATABASE_URL')
+    
+    # Si por alguna razón estás en local o no detecta la variable, usa la de respaldo corregida
+    if not url_conexion:
+        url_conexion = 'postgresql://postgres:L@ser.2310@db.fzpaqqixgadcgawhuptl.supabase.co:6543/postgres'
+    
+    # Regla de oro para drivers de Postgres en Flask
+    if url_conexion.startswith("postgres://"):
+        url_conexion = url_conexion.replace("postgres://", "postgresql://", 1)
+        
     return psycopg2.connect(url_conexion)
-# ==========================================
-# RUTAS DE AUTENTICACIÓN (LOGIN Y LOGOUT)
-# ==========================================
 
+# ==========================================
+# RUTAS DE AUTENTICACIÓN
+# ==========================================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method != 'POST':
@@ -44,18 +51,20 @@ def login():
         flash('Error de comunicación con el servidor', 'danger')
         
     return redirect(url_for('login'))
-    
+
+@app.route('/logout')
+def logout():
+    session.pop('usuario', None)
+    return redirect(url_for('login'))
+
 # ==========================================
-# 1. PÁGINA DE INICIO CONSTANTE: FORMULARIO Y LISTA DE PEDIDOS
+# 1. PÁGINA DE INICIO (CAPTURA DE PEDIDOS)
 # ==========================================
 @app.route('/')
 def inicio():
     if 'usuario' not in session:
         return redirect(url_for('login'))
-    
-    # Súper limpio: No lee nada de la base de datos, solo muestra el formulario centrado
     return render_template('pedidos.html')
-
 
 @app.route('/agregar', methods=['POST'])
 def agregar_pedido():
@@ -70,18 +79,20 @@ def agregar_pedido():
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
+        # %s universal para PostgreSQL
         query = "INSERT INTO pedidos2 (cliente, descripcion, fecha_entrega, total, estatus) VALUES (%s, %s, %s, %s, 'Pendiente')"
         cursor.execute(query, (cliente, descripcion, fecha, total))
         conn.commit()
         conn.close()
+        flash('Pedido registrado con éxito', 'success')
     except Exception as e:
-        print(f"Error al insertar en SQL Server: {e}")
+        print(f"Error al insertar en PostgreSQL: {e}")
+        flash('Error al guardar el pedido', 'danger')
         
-    return redirect(url_for('index')) # Al agregar, te deja en la misma página de inicio
-
+    return redirect(url_for('inicio')) 
 
 # ==========================================
-# 2. APARTADO INDEPENDIENTE: SECCIÓN DEL DASHBOARD
+# 2. SECCIÓN DEL DASHBOARD (CALENDARIO)
 # ==========================================
 @app.route('/dashboard')
 def dashboard_inicio():
@@ -94,14 +105,13 @@ def dashboard_inicio():
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        # Traemos la fecha tal cual está en la tabla
         cursor.execute("SELECT estatus, cliente, fecha_entrega FROM pedidos2")
         rows = cursor.fetchall()
         
         for row in rows:
             estado_limpio = row[0].strip().lower() if row[0] else 'pendiente'
             cliente = row[1]
-            fecha_objeto = row[2] # Esto es un objeto de tipo fecha nativo de Python
+            fecha_objeto = row[2] 
             
             totales['total'] += 1
             if 'diseño' in estado_limpio or 'diseno' in estado_limpio:
@@ -117,9 +127,9 @@ def dashboard_inicio():
                 totales['pendiente'] += 1
                 color = '#6c757d'
 
-            if calendar_fecha := fecha_objeto:
-                # Convertimos la fecha a texto 'YYYY-MM-DD' usando Python, que nunca falla
-                fecha_texto = calendar_fecha.strftime('%Y-%m-%d')
+            if fecha_objeto:
+                # Python convierte la fecha nativa a texto de forma segura
+                fecha_texto = fecha_objeto.strftime('%Y-%m-%d')
                 eventos_calendario.append({
                     'title': f"📦 {cliente}",
                     'start': fecha_texto,
@@ -131,7 +141,6 @@ def dashboard_inicio():
         print(f"Error en Dashboard con Calendario: {e}")
     
     return render_template('dashboard.html', kpis=totales, eventos=eventos_calendario)
-
 
 # ==========================================
 # 3. PANTALLA DE ADMINISTRACIÓN (CRUD)
@@ -145,23 +154,21 @@ def admin_pedidos():
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id_pedido, cliente, descripcion, fecha_entrega, total, estatus
-            FROM pedidos2
-        """)
+        cursor.execute("SELECT id_pedido, cliente, descripcion, fecha_entrega, total, estatus FROM pedidos2 ORDER BY id_pedido DESC")
         rows = cursor.fetchall()
         
         for row in rows:
+            # Mandamos la fecha formateada desde Python para evitar conflictos con Jinja o SQL
+            fecha_str = row[3].strftime('%d-%m-%Y') if row[3] else ''
             pedidos_formateados.append({
                 "id": row[0], "cliente": row[1], "descripcion": row[2], 
-                "fecha": row[3], "total": row[4], "estatus": row[5]
+                "fecha": fecha_str, "total": row[4], "estatus": row[5]
             })
         conn.close()
     except Exception as e:
-        print(f"Error al leer SQL Server para Admin: {e}")
+        print(f"Error al leer PostgreSQL para Admin: {e}")
     
     return render_template('admin_pedidos.html', lista_pedidos=pedidos_formateados)
-
 
 @app.route('/editar_estado/<int:id_pedido>/<string:nuevo_estado>')
 def editar_estado(id_pedido, nuevo_estado):
@@ -180,7 +187,6 @@ def editar_estado(id_pedido, nuevo_estado):
         
     return redirect(url_for('admin_pedidos'))
 
-
 @app.route('/eliminar/<int:id_pedido>')
 def eliminar_pedido(id_pedido):
     if 'usuario' not in session:
@@ -189,15 +195,15 @@ def eliminar_pedido(id_pedido):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        query = "DELETE FROM pedidos2 WHERE id_pedido = ?"
-        cursor.execute(query, [id_pedido])
+        # Cambiado '?' por '%s' que es el estándar de Postgres
+        query = "DELETE FROM pedidos2 WHERE id_pedido = %s"
+        cursor.execute(query, (id_pedido,))
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"Error al eliminar pedido: {e}")
         
     return redirect(url_for('admin_pedidos'))
-
 
 if __name__ == '__main__':
     app.run(debug=True)
