@@ -32,8 +32,16 @@ def login():
     if request.method != 'POST':
         return render_template('login.html')
         
-    usuario = request.form['username']
-    contra = request.form['password']
+    # Usamos .get() en lugar de ['...'] para evitar el Error 400 si los nombres no coinciden
+    usuario = request.form.get('username') or request.form.get('usuario')
+    contra = request.form.get('password') or request.form.get('contra')
+    
+    # Si por alguna razón llegaron vacíos, te avisará en los logs de Render
+    if not usuario or not contra:
+        print(f"⚠️ Alerta: Formulario envió usuario o contraseña vacíos. Recibido -> username: {usuario}, password: {contra}")
+        flash('Por favor llena todos los campos', 'danger')
+        return redirect(url_for('login'))
+        
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
@@ -50,11 +58,6 @@ def login():
         print(f"Error crítico en Login: {e}")
         flash('Error de comunicación con el servidor', 'danger')
         
-    return redirect(url_for('login'))
-
-@app.route('/logout')
-def logout():
-    session.pop('usuario', None)
     return redirect(url_for('login'))
 
 # ==========================================
