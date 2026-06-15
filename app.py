@@ -20,36 +20,41 @@ def obtener_conexion():
 # RUTAS DE AUTENTICACIÓN (LOGIN Y LOGOUT)
 # ==========================================
 
-@app.route('/login', methods=['POST'])
-def login_post():
-    usuario = request.form['usuario']
-    contra = request.form['contra']
-    
-    try:
-        conn = obtener_conexion()
-        cursor = conn.cursor()
-        # Buscamos al usuario de forma segura con %s
-        cursor.execute("SELECT contra FROM usuarios WHERE usuario = %s", (usuario,))
-        row = cursor.fetchone()
-        conn.close()
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        usuario = request.form['usuario']
+        contra = request.form['contra']
         
-        # BLINDAJE: Verificamos si 'row' tiene datos antes de validar la contraseña
-        if row is not None:
-            if row[0] == contra:
-                session['usuario'] = usuario
-                return redirect(url_for('inicio'))
+        try:
+            conn = obtener_conexion()
+            cursor = conn.cursor()
+            # Buscamos al usuario de forma segura con %s
+            cursor.execute("SELECT contra FROM usuarios WHERE usuario = %s", (usuario,))
+            row = cursor.fetchone()
+            conn.close()
+            
+            # Verificamos si el usuario existe
+            if row is not None:
+                if row[0] == contra:
+                    session['usuario'] = usuario
+                    return redirect(url_for('inicio'))
+                else:
+                    flash('Contraseña incorrecta', 'danger')
+                    return redirect(url_for('login'))
             else:
-                flash('Contraseña incorrecta', 'danger')
+                flash('El usuario no existe', 'danger')
                 return redirect(url_for('login'))
-        else:
-            flash('El usuario no existe', 'danger')
+                
+        except Exception as e:
+            print(f"Error crítico en el proceso de Login: {e}")
+            flash('Error de comunicación con el servidor', 'danger')
             return redirect(url_for('login'))
             
-    except Exception as e:
-        print(f"Error crítico en el proceso de Login: {e}")
-        flash('Error de comunicación con el servidor', 'danger')
-        return redirect(url_for('login'))
-
+    # SI EL MÉTODO ES 'GET' (cuando abren la página por primera vez):
+    # Simplemente muestra la hermosa pantalla de login de Insight Studio
+    return render_template('login.html')
+    
 # ==========================================
 # 1. PÁGINA DE INICIO CONSTANTE: FORMULARIO Y LISTA DE PEDIDOS
 # ==========================================
