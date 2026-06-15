@@ -31,7 +31,6 @@ def login():
             cursor.execute("SELECT contra FROM usuarios WHERE usuario = %s", (usuario,))
             row = cursor.fetchone()
             conn.close()
-            
             if row is not None:
                 if row[0] == contra:
                     session['usuario'] = usuario
@@ -46,11 +45,6 @@ def login():
             print(f"Error crítico en el proceso de Login: {e}")
             flash('Error de comunicación con el servidor', 'danger')
             return redirect(url_for('login'))
-            
-    return render_template('login.html')
-            
-    # SI EL MÉTODO ES 'GET' (cuando abren la página por primera vez):
-    # Simplemente muestra la hermosa pantalla de login de Insight Studio
     return render_template('login.html')
     
 # ==========================================
