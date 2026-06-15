@@ -60,29 +60,22 @@ def logout():
 # 1. PÁGINA DE INICIO CONSTANTE: FORMULARIO Y LISTA DE PEDIDOS
 # ==========================================
 @app.route('/')
-def index():
+def inicio():
     if 'usuario' not in session:
         return redirect(url_for('login'))
-
-    pedidos_formateados = []
+    
+    pedidos_lista = []
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id_pedido, cliente, descripcion, TO_CHAR(fecha_entrega), total, estatus 
-            FROM pedidos2
-        """)
-        rows = cursor.fetchall()
-        for row in rows:
-            pedidos_formateados.append({
-                "id": row[0], "cliente": row[1], "descripcion": row[2], 
-                "fecha": row[3], "total": row[4], "estatus": row[5]
-            })
+        # Seleccionamos la fecha_entrega limpia, sin funciones raras
+        cursor.execute("SELECT id_pedido, cliente, descripcion, fecha_entrega, total, estatus FROM pedidos2 ORDER BY id_pedido DESC")
+        pedidos_lista = cursor.fetchall()
         conn.close()
     except Exception as e:
         print(f"Error al leer pedidos en Inicio: {e}")
         
-    return render_template('pedidos.html', lista_pedidos=pedidos_formateados)
+    return render_template('pedidos.html', pedidos=pedidos_lista)
 
 
 @app.route('/agregar', methods=['POST'])
@@ -117,52 +110,47 @@ def dashboard_inicio():
         return redirect(url_for('login'))
 
     totales = {'total': 0, 'pendiente': 0, 'diseno': 0, 'corte': 0, 'listo': 0}
-    eventos_calendario = [] # <-- Nueva lista para el calendario
+    eventos_calendario = []
 
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        
-        # Traemos también el cliente y la fecha para el calendario
-        cursor.execute("""
-            SELECT estatus, cliente, TO_CHAR(fecha_entrega) 
-            FROM pedidos2
-        """)
+        # Traemos la fecha tal cual está en la tabla
+        cursor.execute("SELECT estatus, cliente, fecha_entrega FROM pedidos2")
         rows = cursor.fetchall()
         
         for row in rows:
             estado_limpio = row[0].strip().lower() if row[0] else 'pendiente'
             cliente = row[1]
-            fecha = row[2]
+            fecha_objeto = row[2] # Esto es un objeto de tipo fecha nativo de Python
             
-            # 1. Lógica de los contadores (KPIs)
             totales['total'] += 1
             if 'diseño' in estado_limpio or 'diseno' in estado_limpio:
                 totales['diseno'] += 1
-                color = '#0dcaf0' # Azul info
+                color = '#0dcaf0'
             elif 'corte' in estado_limpio or 'cortando' in estado_limpio:
                 totales['corte'] += 1
-                color = '#ffc107' # Amarillo warning
+                color = '#ffc107'
             elif 'listo' in estado_limpio or 'completo' in estado_limpio:
                 totales['listo'] += 1
-                color = '#198754' # Verde success
+                color = '#198754'
             else:
                 totales['pendiente'] += 1
-                color = '#6c757d' # Gris secondary
+                color = '#6c757d'
 
-            # 2. Estructuramos el pedido como un evento para FullCalendar
-            if fecha:
+            if calendar_fecha := fecha_objeto:
+                # Convertimos la fecha a texto 'YYYY-MM-DD' usando Python, que nunca falla
+                fecha_texto = calendar_fecha.strftime('%Y-%m-%d')
                 eventos_calendario.append({
                     'title': f"📦 {cliente}",
-                    'start': fecha,
-                    'color': color # El calendario pintará el evento del color de su estatus
+                    'start': fecha_texto,
+                    'color': color
                 })
                 
         conn.close()
     except Exception as e:
         print(f"Error en Dashboard con Calendario: {e}")
     
-    # Mandamos los KPIs y la lista de eventos al HTML
     return render_template('dashboard.html', kpis=totales, eventos=eventos_calendario)
 
 
@@ -179,7 +167,7 @@ def admin_pedidos():
         conn = obtener_conexion()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id_pedido, cliente, descripcion, TO_CHAR(fecha_entrega), total, estatus
+            SELECT id_pedido, cliente, descripcion, fecha_entrega, total, estatus
             FROM pedidos2
         """)
         rows = cursor.fetchall()
