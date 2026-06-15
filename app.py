@@ -25,16 +25,13 @@ def login():
     if request.method == 'POST':
         usuario = request.form['usuario']
         contra = request.form['contra']
-        
         try:
             conn = obtener_conexion()
             cursor = conn.cursor()
-            # Buscamos al usuario de forma segura con %s
             cursor.execute("SELECT contra FROM usuarios WHERE usuario = %s", (usuario,))
             row = cursor.fetchone()
             conn.close()
             
-            # Verificamos si el usuario existe
             if row is not None:
                 if row[0] == contra:
                     session['usuario'] = usuario
@@ -45,11 +42,12 @@ def login():
             else:
                 flash('El usuario no existe', 'danger')
                 return redirect(url_for('login'))
-                
         except Exception as e:
             print(f"Error crítico en el proceso de Login: {e}")
             flash('Error de comunicación con el servidor', 'danger')
             return redirect(url_for('login'))
+            
+    return render_template('login.html')
             
     # SI EL MÉTODO ES 'GET' (cuando abren la página por primera vez):
     # Simplemente muestra la hermosa pantalla de login de Insight Studio
